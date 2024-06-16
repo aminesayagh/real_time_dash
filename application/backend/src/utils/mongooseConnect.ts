@@ -6,7 +6,6 @@ import {
     MONGO_DB,
     MONGO_PASSWORD
 } from '../env';
-import { applyMongooseCache } from './mongooseCache';
 
 // const KEY: string = `${MONGO_URI}://${MONGO_USER}:${MONGO_PASSWORD}@cluster0.fqw1w.mongodb.net/${MONGO_DB}?retryWrites=true&w=majority` || '';
 const KEY: string = `mongodb://${MONGO_USER}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_URI}/${MONGO_DB}?authSource=admin&retryWrites=true&w=majority`|| '';
@@ -30,8 +29,6 @@ if(!cached) {
     // @ts-ignore
     cached = global.mongooseConnected = { conn: null, promise: null };
 }
-
-applyMongooseCache();
 
 dbConnect().then(() => {
     console.log('db connected');

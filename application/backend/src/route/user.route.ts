@@ -5,11 +5,25 @@ import { ApiResponsePagination, ApiRequest, ApiResponse } from "types/Api";
 import { IUserMeAggregate } from 'types/Aggregate';
 import UserModel, { IUserDocument } from "../model/User.model";
 import { ERRORS } from '../constants/ERRORS';
+import { getCachedData } from '@/cache/cacheUtils';
 
 const router = express.Router();
 
 router.get('/', async (req: ApiRequest, res: ApiResponsePagination<IUserDocument>): Promise<void> => {
     const { filter, ...options } = qs.parse(req.query) as any;
+
+    // Try to get cached data
+    let cache_options = { filter, options };
+    const cachedData = await getCachedData('GET', '/users', cache_options);
+    if (cachedData) {
+        res.send({
+            status: 'success',
+            data: cachedData
+        });
+        return;
+    }
+
+    // Fetch from DB and cache the result
     const result = await UserModel.paginate(filter, options).catch((err) => {
         res.status(400).send({ status: 'error', message: err.message });
     });
@@ -17,11 +31,15 @@ router.get('/', async (req: ApiRequest, res: ApiResponsePagination<IUserDocument
         res.status(404).send({ status: 'error', message: ERRORS.NOT_FOUND });
         return;
     }
+    
+    // Cache the data
+    await setCachedData('GET', '/users', result, { filter, options });
+    
     res.send({
         status: 'success',
         data: result
     });
-})
+});
 
 router.post('/', async (req: ApiRequest, res: ApiResponse<IUserDocument>): Promise<void> => {
     const user = new UserModel(req.body);
